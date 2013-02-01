@@ -96,24 +96,24 @@ def string_to_motion_mode(mode):
 
 # Called when the plugin is unloaded (e.g., perhaps it just got added to
 # ignored_packages). Ensure files aren't left in command mode.
-def unload_handler():
+def plugin_unloaded():
     for w in sublime.windows():
         for v in w.views():
             v.settings().set('command_mode', False)
             v.settings().set('inverse_caret_state', False)
             v.erase_status('mode')
 
+def plugin_loaded():
+    for w in sublime.windows():
+        for v in w.views():
+            if v.settings().get("vintage_start_in_command_mode"):
+                v.settings().set('command_mode', True)
+                v.settings().set('inverse_caret_state', True)
+            update_status_line(v)
+
 # Ensures the input state is reset when the view changes, or the user selects
 # with the mouse or non-vintage key bindings
 class InputStateTracker(sublime_plugin.EventListener):
-    def __init__(self):
-        for w in sublime.windows():
-            for v in w.views():
-                if v.settings().get("vintage_start_in_command_mode"):
-                    v.settings().set('command_mode', True)
-                    v.settings().set('inverse_caret_state', True)
-                update_status_line(v)
-
     def on_activated(self, view):
         reset_input_state(view)
 

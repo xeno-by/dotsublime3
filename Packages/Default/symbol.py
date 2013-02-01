@@ -28,19 +28,7 @@ class GotoDefinition(sublime_plugin.WindowCommand):
 
         return display_fname + ":" + str(row)
 
-    def run(self, symbol = None):
-
-        orig_sel = None
-        v = self.window.active_view()
-        if v:
-            orig_sel = [r for r in v.sel()]
-
-        if not symbol:
-            if not v:
-                return
-
-            symbol = v.substr(v.word(v.sel()[0]))
-
+    def lookup_symbol(self, symbol):
         index_locations = self.window.lookup_symbol_in_index(symbol)
         open_file_locations = self.window.lookup_symbol_in_open_files(symbol)
 
@@ -68,6 +56,32 @@ class GotoDefinition(sublime_plugin.WindowCommand):
         for ofl in open_file_locations:
             if not file_in_location_list(ofl[0], ofl_ignore):
                 locations.append(ofl)
+
+        return locations
+
+    def run(self, symbol = None):
+        orig_sel = None
+        v = self.window.active_view()
+        if v:
+            orig_sel = [r for r in v.sel()]
+
+        if not symbol and not v:
+            return
+
+        if not symbol:
+            pt = v.sel()[0]
+
+            symbol = v.substr(v.expand_by_class(pt,
+                sublime.CLASS_WORD_START | sublime.CLASS_WORD_END,
+                "[]{}()<>:."))
+            locations = self.lookup_symbol(symbol)
+
+            if len(locations) == 0:
+                symbol = v.substr(v.word(pt))
+                locations = self.lookup_symbol(symbol)
+
+        else:
+            locations = self.lookup_symbol(symbol)
 
         if len(locations) == 0:
             sublime.status_message("Unable to find " + symbol)
